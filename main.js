@@ -36,9 +36,11 @@ function game() {
     //comment
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var background = document.querySelector("#background");
+    ctx.drawImage(background, 0 , 0, canvas.width, canvas.height);
+    
     var costume = document.querySelector("#character");
     ctx.drawImage(costume, 0, 192, character.width, character.height, character.x, character.y, character.width, character.height);
 
