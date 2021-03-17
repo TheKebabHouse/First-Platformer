@@ -1,6 +1,10 @@
+const gameDimensions = {
+    width: 1500,
+    height: 750,
+}
 var character = {
-    x: 10,
-    y: 10,
+    x: gameDimensions.width/2,
+    y: gameDimensions.height/2,
     vx: 0,
     vy: 1,
     width: 64,
@@ -13,20 +17,49 @@ var platforms = [
         y: 700,
         width: 100,
         height: 10,
+        colour: "blue",
+        
     }, {
         x: 1250,
         y: 700,
         width: 300,
         height: 10,
+        colour: "green",
     }, {
         x: 500,
         y: 700,
         width: 100,
         height: 20,
+        colour: "aqua",
+        
+    },{
+        x: 500,
+        y: 500,
+        width: 150,
+        height: 40,
+        colour: "yellow",
+    },{
+        x: 500,
+        y: 350,
+        width: 200,
+        height: 20,
+        colour: "blue",
+    },{
+        x:700,
+        y: 250,
+        width: 400,
+        height: 10,
+        colour: "green",
     }
 ];
 const gravitySpeed = 0.3;
 let tickLength = 10;
+const pressedKeys= {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+};
 
 
 function game() {
@@ -42,12 +75,14 @@ function game() {
     ctx.drawImage(background, 0 , 0, canvas.width, canvas.height);
     
     var costume = document.querySelector("#character");
-    ctx.drawImage(costume, 0, 192, character.width, character.height, character.x, character.y, character.width, character.height);
-
-    ctx.fillStyle = "red"
+    ctx.drawImage(costume, 0, 196, character.width, character.height, canvas.width/2, canvas.height/2, character.width, character.height);
+    
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, -character.y + gameDimensions.height*1.5, canvas.width, 750);
 
     for (var i = 0; i < platforms.length; ++i) {
-        ctx.fillRect(platforms[i].x, platforms[i].y, platforms[i].width, platforms[i].height);
+        ctx.fillStyle = platforms[i].colour;
+        ctx.fillRect(platforms[i].x - character.x + gameDimensions.width/2, platforms[i].y - character.y + gameDimensions.height/2, platforms[i].width, platforms[i].height);
     }
 
     character.y += character.vy;
@@ -91,7 +126,21 @@ function game() {
             }
         }
     }
-    document.onkeydown = moveCharacter;
+
+    document.onkeydown = handleOnkeyDown;
+    document.onkeyup = handleOnkeyUp;
+    if (pressedKeys.right) {
+        character.vx = 5;
+    }
+    
+    if (pressedKeys.left) {
+        character.vx = -5;
+    }
+    
+    if (pressedKeys.up && character.vy == 0) {
+        character.vy = -10;
+    }
+    
     setTimeout(game, tickLength);
 }
 
@@ -111,20 +160,36 @@ function isObjectOnPlatform(obj, platform) {
     return false;
 }
 
-function moveCharacter(e) {
+function handleOnkeyDown(e) {
     switch (e.keyCode) {
         case 37: // Key left
-            character.vx = -5;
+            pressedKeys.left = true;
             break;
         case 38: // Key up
-            if (character.vy == 0) {
-                character.vy = -10;
-            }
+            pressedKeys.up = true;
             break;
         case 40: // Key down
+            pressedKeys.down = true;
             break;
         case 39: // Key right
-            character.vx = 5;
+            pressedKeys.right = true;
+            break;
+    }
+}
+
+function handleOnkeyUp(e) {
+    switch (e.keyCode) {
+        case 37: // Key left
+            pressedKeys.left = false;
+            break;
+        case 38: // Key up
+            pressedKeys.up = false;
+            break;
+        case 40: // Key down
+            pressedKeys.down = false;
+            break;
+        case 39: // Key right
+            pressedKeys.right = false;
             break;
     }
 }
