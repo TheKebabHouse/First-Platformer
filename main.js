@@ -10,6 +10,9 @@ var character = {
     width: 64,
     height: 64,
     platform: null,
+    costumex: 0,
+    costumey: 192,
+
 };
 var platforms = [
     {
@@ -72,10 +75,12 @@ function game() {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     var background = document.querySelector("#background");
-    ctx.drawImage(background, 0 , 0, canvas.width, canvas.height);
-    
+    var backgroundX = -character.x/4 - gameDimensions.width/2;
+    ctx.drawImage(background, backgroundX, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
+    ctx.drawImage(background, backgroundX + canvas.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
+
     var costume = document.querySelector("#character");
-    ctx.drawImage(costume, 0, 196, character.width, character.height, canvas.width/2, canvas.height/2, character.width, character.height);
+    ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height, canvas.width/2, canvas.height/2, character.width, character.height);
     
     ctx.fillStyle = "black";
     ctx.fillRect(0, -character.y + gameDimensions.height*1.5, canvas.width, 750);
@@ -131,10 +136,14 @@ function game() {
     document.onkeyup = handleOnkeyUp;
     if (pressedKeys.right) {
         character.vx = 5;
+        character.costumex = 0,
+        character.costumey = 196
     }
     
     if (pressedKeys.left) {
         character.vx = -5;
+        character.costumex = 0,
+        character.costumey = 64
     }
     
     if (pressedKeys.up && character.vy == 0) {
