@@ -57,6 +57,7 @@ var platforms = [
 ];
 const gravitySpeed = 0.3;
 let tickLength = 10;
+const backgroundSlowness = 2;
 const pressedKeys= {
     up: false,
     down: false,
@@ -69,16 +70,19 @@ function game() {
 
 
 
-    //comment
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
+    //Draw blue background
+    ctx.fillStyle = "#009dc4";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    var background = document.querySelector("#background");
-    var backgroundX = -character.x/4 - gameDimensions.width/2;
-    ctx.drawImage(background, backgroundX, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
-    ctx.drawImage(background, backgroundX + canvas.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
 
+    //Draw seamless parallax background
+    var background = document.querySelector("#background");
+    var screenNum = parseInt(character.x / (gameDimensions.width * backgroundSlowness));
+    var backgroundX = parseInt((-character.x / backgroundSlowness) + (screenNum * gameDimensions.width));
+    ctx.drawImage(background, backgroundX, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
+    ctx.drawImage(background, backgroundX + gameDimensions.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
+    
     var costume = document.querySelector("#character");
     ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height, canvas.width/2, canvas.height/2, character.width, character.height);
     
@@ -150,6 +154,9 @@ function game() {
         character.vy = -10;
     }
     
+    //Put character data on the screen
+    //document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
+
     setTimeout(game, tickLength);
 }
 
