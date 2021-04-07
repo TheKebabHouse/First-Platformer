@@ -3,8 +3,8 @@ const gameDimensions = {
     height: 750,
 }
 var character = {
-    x: gameDimensions.width/2,
-    y: gameDimensions.height/2,
+    x: 0,
+    y: 0,
     vx: 0,
     vy: 1,
     width: 64,
@@ -53,6 +53,12 @@ var platforms = [
         width: 400,
         height: 10,
         colour: "green",
+    },{
+        x: 0,
+        y: gameDimensions.height - 100,
+        width: 3000,
+        height: 100,
+        colour: "black",
     }
 ];
 const gravitySpeed = 0.3;
@@ -68,8 +74,6 @@ const pressedKeys= {
 
 function game() {
 
-
-
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     //Draw blue background
@@ -82,20 +86,21 @@ function game() {
     var backgroundX = parseInt((-character.x / backgroundSlowness) + (screenNum * gameDimensions.width));
     ctx.drawImage(background, backgroundX, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
     ctx.drawImage(background, backgroundX + gameDimensions.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
+    ctx.drawImage(background, backgroundX - gameDimensions.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
     
     var costume = document.querySelector("#character");
-    ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height, canvas.width/2, canvas.height/2, character.width, character.height);
-    
+    character.costumex = (Math.floor (Math.abs(character.x)/20 ) % 9)*64
+    ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height - 4, canvas.width/2, canvas.height/2, character.width, character.height);
+     
     ctx.fillStyle = "black";
     ctx.fillRect(0, -character.y + gameDimensions.height*1.5, canvas.width, 750);
 
     for (var i = 0; i < platforms.length; ++i) {
         ctx.fillStyle = platforms[i].colour;
-        ctx.fillRect(platforms[i].x - character.x + gameDimensions.width/2, platforms[i].y - character.y + gameDimensions.height/2, platforms[i].width, platforms[i].height);
+        ctx.fillRect((platforms[i].x - character.x) + gameDimensions.width/2, (platforms[i].y - character.y) + gameDimensions.height/2, platforms[i].width, platforms[i].height);
     }
 
     character.y += character.vy;
-
 
     if (character.vy != 0) {
 
@@ -140,14 +145,12 @@ function game() {
     document.onkeyup = handleOnkeyUp;
     if (pressedKeys.right) {
         character.vx = 5;
-        character.costumex = 0,
-        character.costumey = 196
+        character.costumey = 194;
     }
     
     if (pressedKeys.left) {
         character.vx = -5;
-        character.costumex = 0,
-        character.costumey = 64
+        character.costumey = 66;
     }
     
     if (pressedKeys.up && character.vy == 0) {
