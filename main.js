@@ -20,7 +20,7 @@ var platforms = [
         y: -700,
         width: 100,
         height: 10,
-        isHarmful: false,
+        shrinkSpeed: 0,
         colour: "blue",
         
     }, {
@@ -28,14 +28,14 @@ var platforms = [
         y: -700,
         width: 300,
         height: 10,
-        isharmful: false,
+        shrinkSpeed: 0,
         colour: "green",
     }, {
         x: 500,
         y: -700,
         width: 100,
         height: 20,
-        isharmful: true,
+        shrinkSpeed: 1,
         colour: "aqua",
         
     },{
@@ -43,29 +43,29 @@ var platforms = [
         y: -300,
         width: 150,
         height: 40,
-        isharmful: false,
+        shrinkSpeed: 0,
         colour: "yellow",
     },{
         x: 500,
         y: -350,
         width: 200,
         height: 20,
-        isharmful: false,
+        shrinkSpeed: 0,
         colour: "blue",
     },{
         x:700,
         y: -250,
         width: 400,
         height: 10,
-        isharmful: true,
+        shrinkSpeed: 1,
         colour: "green",
     },{
         x: 0,
         y: -100,
         width: 3000,
         height: 100,
-        isharmful: false,
-        colour: "black",
+        shrinkSpeed: 2,
+        colour: "#222",
     }
 ];
 const gravitySpeed = 0.3;
@@ -82,7 +82,6 @@ function resetCharacter() {
     character.x = 0;
     character.y = -300;
     character.vy = 0;
-    console.log("Character reset");
 }
 
 function game() {
@@ -137,10 +136,7 @@ function game() {
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
-                if (platforms[i].isHarmful) {
-                    resetCharacter();
-                    break;
-                }
+                platforms[i].width -= platforms[i].shrinkSpeed;
                 character.platform = i;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
@@ -178,7 +174,7 @@ function game() {
     }
      
     //Put character data on the screen
-    document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
+    //document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
 
     setTimeout(game, tickLength);
 }
