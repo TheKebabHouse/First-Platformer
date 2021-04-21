@@ -12,7 +12,6 @@ var character = {
     platform: null,
     costumex: 0,
     costumey: 192,
-
 };
 var platforms = [
     {
@@ -78,14 +77,35 @@ const pressedKeys= {
     right: false,
 };
 
+function pageLoad() {
+    for (let i = 0; i < 1000; ++i) {
+        //addPlatform(Math.random() * i * 5, (i / 100) * i * -Math.random());
+        //addPlatform(Math.sin(i / 10) * 500, -i * 20 + (Math.random() * 30));
+        addPlatform(Math.sin(i / 10) * 1000, Math.cos(i / 10) * 1000 - 1000);
+    }
+    setInterval(addPlatform, 1000);
+    game();
+}
+
 function resetCharacter() {
     character.x = 0;
     character.y = -300;
     character.vy = 0;
 }
 
-function game() {
+function addPlatform(x, y) {
+    platforms.push({
+        x,
+        y,
+        width: 100,
+        height: 20,
+        shrinkSpeed: 1,
+        colour: "orange",
+    });
+}
 
+function game() {
+    
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     //Draw blue background
@@ -137,6 +157,13 @@ function game() {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
                 platforms[i].width -= platforms[i].shrinkSpeed;
+
+                //Remove platform if too thin
+                if (platforms[i].width < character.width / 2) {
+                    platforms.splice(i--, 1);
+                    continue;
+                }
+
                 character.platform = i;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
