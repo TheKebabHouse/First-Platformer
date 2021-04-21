@@ -17,45 +17,45 @@ var character = {
 var platforms = [
     {
         x: 100,
-        y: 700,
+        y: -700,
         width: 100,
         height: 10,
         colour: "blue",
         
     }, {
         x: 1250,
-        y: 700,
+        y: -700,
         width: 300,
         height: 10,
         colour: "green",
     }, {
         x: 500,
-        y: 700,
+        y: -700,
         width: 100,
         height: 20,
         colour: "aqua",
         
     },{
-        x: 500,
-        y: 500,
+        x: 0,
+        y: -300,
         width: 150,
         height: 40,
         colour: "yellow",
     },{
         x: 500,
-        y: 350,
+        y: -350,
         width: 200,
         height: 20,
         colour: "blue",
     },{
         x:700,
-        y: 250,
+        y: -250,
         width: 400,
         height: 10,
         colour: "green",
     },{
         x: 0,
-        y: gameDimensions.height - 100,
+        y: -100,
         width: 3000,
         height: 100,
         colour: "black",
@@ -71,6 +71,11 @@ const pressedKeys= {
     right: false,
 };
 
+function resetCharacter() {
+    character.x = 0;
+    character.y = -300;
+    character.vy = 0;
+}
 
 function game() {
 
@@ -84,16 +89,20 @@ function game() {
     var background = document.querySelector("#background");
     var screenNum = parseInt(character.x / (gameDimensions.width * backgroundSlowness));
     var backgroundX = parseInt((-character.x / backgroundSlowness) + (screenNum * gameDimensions.width));
-    ctx.drawImage(background, backgroundX, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
-    ctx.drawImage(background, backgroundX + gameDimensions.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
-    ctx.drawImage(background, backgroundX - gameDimensions.width, -character.y + gameDimensions.height*1.5 -  canvas.height, canvas.width, canvas.height);
     
+    function drawBackground(offsetX) {
+        ctx.drawImage(background, backgroundX + offsetX, -character.y - gameDimensions.height/2, canvas.width, canvas.height);
+    }
+    drawBackground(0);
+    drawBackground(gameDimensions.width);
+    drawBackground(-gameDimensions.width);
+
     var costume = document.querySelector("#character");
     character.costumex = (Math.floor (Math.abs(character.x)/20 ) % 9)*64
     ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height - 4, canvas.width/2, canvas.height/2, character.width, character.height);
      
     ctx.fillStyle = "black";
-    ctx.fillRect(0, -character.y + gameDimensions.height*1.5, canvas.width, 750);
+    ctx.fillRect(0, -character.y + gameDimensions.height / 2, canvas.width, 750);
 
     for (var i = 0; i < platforms.length; ++i) {
         ctx.fillStyle = platforms[i].colour;
@@ -101,11 +110,10 @@ function game() {
     }
 
     character.y += character.vy;
+    character.vy += gravitySpeed;
 
-    if (character.vy != 0) {
-
-        character.vy += gravitySpeed;
-
+    if (character.y > 0) {
+        resetCharacter();
     }
 
     if (character.vx != 0) {
@@ -121,13 +129,11 @@ function game() {
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
-
                 character.platform = i;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
                 break;
             }
-
         }
     }
 
@@ -143,6 +149,7 @@ function game() {
 
     document.onkeydown = handleOnkeyDown;
     document.onkeyup = handleOnkeyUp;
+
     if (pressedKeys.right) {
         character.vx = 5;
         character.costumey = 194;
@@ -169,13 +176,11 @@ function isObjectOnPlatform(obj, platform) {
         if (obj.y + obj.height <= platform.y + platform.height) {
             if (obj.x + obj.width / 2 > platform.x) {
                 if (obj.x + obj.width / 2 < platform.x + platform.width) {
-
                     return true;
                 }
             }
         }
     }
-
     return false;
 }
 
