@@ -20,6 +20,7 @@ var platforms = [
         y: -700,
         width: 100,
         height: 10,
+        isHarmful: false,
         colour: "blue",
         
     }, {
@@ -27,12 +28,14 @@ var platforms = [
         y: -700,
         width: 300,
         height: 10,
+        isharmful: false,
         colour: "green",
     }, {
         x: 500,
         y: -700,
         width: 100,
         height: 20,
+        isharmful: true,
         colour: "aqua",
         
     },{
@@ -40,24 +43,28 @@ var platforms = [
         y: -300,
         width: 150,
         height: 40,
+        isharmful: false,
         colour: "yellow",
     },{
         x: 500,
         y: -350,
         width: 200,
         height: 20,
+        isharmful: false,
         colour: "blue",
     },{
         x:700,
         y: -250,
         width: 400,
         height: 10,
+        isharmful: true,
         colour: "green",
     },{
         x: 0,
         y: -100,
         width: 3000,
         height: 100,
+        isharmful: false,
         colour: "black",
     }
 ];
@@ -75,6 +82,7 @@ function resetCharacter() {
     character.x = 0;
     character.y = -300;
     character.vy = 0;
+    console.log("Character reset");
 }
 
 function game() {
@@ -129,6 +137,10 @@ function game() {
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
+                if (platforms[i].isHarmful) {
+                    resetCharacter();
+                    break;
+                }
                 character.platform = i;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
@@ -141,6 +153,7 @@ function game() {
     if (character.platform != null) {
         if (!isObjectOnPlatform(character, platforms[character.platform])) {
             character.platform = null;
+            //Make sure character drops when walking off a platform
             if (character.vy == 0) {
                 character.vy = gravitySpeed;
             }
@@ -163,9 +176,9 @@ function game() {
     if (pressedKeys.up && character.vy == 0) {
         character.vy = -10;
     }
-    
+     
     //Put character data on the screen
-    //document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
+    document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
 
     setTimeout(game, tickLength);
 }
