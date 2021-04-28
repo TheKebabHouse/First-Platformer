@@ -12,6 +12,7 @@ var character = {
     platform: null,
     costumex: 0,
     costumey: 192,
+    isFalling() { return character.vy > 0 },
 };
 var platforms = [
     {
@@ -63,8 +64,8 @@ var platforms = [
         y: -100,
         width: 3000,
         height: 100,
-        shrinkSpeed: 2,
-        colour: "#222",
+        shrinkSpeed: 0,
+        colour: "aqua",
     }
 ];
 const gravitySpeed = 0.3;
@@ -78,12 +79,15 @@ const pressedKeys= {
 };
 
 function pageLoad() {
-    for (let i = 0; i < 1000; ++i) {
-        //addPlatform(Math.random() * i * 5, (i / 100) * i * -Math.random());
+    /*for (let i = 0; i < 1000; ++i) {
+        //Create random platforms
+        addPlatform(Math.random() * i * 5, (i / 1) * i * -Math.random());
+        //Create staircase
         //addPlatform(Math.sin(i / 10) * 500, -i * 20 + (Math.random() * 30));
-        addPlatform(Math.sin(i / 10) * 1000, Math.cos(i / 10) * 1000 - 1000);
-    }
-    setInterval(addPlatform, 1000);
+        //Create circle
+        //addPlatform(Math.sin(i / 10) * 1000, Math.cos(i / 10) * 1000 - 1000);
+    }*/
+    setInterval(addRandomPlatform, 500);
     game();
 }
 
@@ -93,14 +97,23 @@ function resetCharacter() {
     character.vy = 0;
 }
 
-function addPlatform(x, y) {
+function randomizeColor() {
+    return `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 1)`;
+}
+
+function randInt(a, b) {
+    return Math.random() * (b - a) + a;
+}
+
+function addRandomPlatform() {
+    const width = randInt(80, 340);
     platforms.push({
-        x,
-        y,
-        width: 100,
-        height: 20,
-        shrinkSpeed: 1,
-        colour: "orange",
+        x: character.x + randInt(-100, 100),
+        y: character.y - 10,
+        width,
+        height: randInt(10, 20),
+        shrinkSpeed: width / (20 * tickLength),
+        colour: randomizeColor(),
     });
 }
 
@@ -125,7 +138,9 @@ function game() {
     drawBackground(-gameDimensions.width);
 
     var costume = document.querySelector("#character");
-    character.costumex = (Math.floor (Math.abs(character.x)/20 ) % 9)*64
+    if (!character.isFalling()) {
+        character.costumex = (Math.floor(Math.abs(character.x) / 20) % 9) * 64;
+    }
     ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height - 4, canvas.width/2, canvas.height/2, character.width, character.height);
      
     ctx.fillStyle = "black";
@@ -136,8 +151,13 @@ function game() {
         ctx.fillRect((platforms[i].x - character.x) + gameDimensions.width/2, (platforms[i].y - character.y) + gameDimensions.height/2, platforms[i].width, platforms[i].height);
     }
 
+   
+   
     character.y += character.vy;
-    character.vy += gravitySpeed;
+
+    if (character.vy < 10) {
+        character.vy += gravitySpeed;
+    }
 
     if (character.y > 0) {
         resetCharacter();
@@ -153,17 +173,23 @@ function game() {
         character.y = canvas.height - character.height;
     }
 
+    //Shrink platforms if below the character
+    for (var i = 0; i < platforms.length; ++i) {
+        if (platforms[i].y > character.y + character.height - 1) {
+            platforms[i].width -= platforms[i].shrinkSpeed;
+            platforms[i].x += platforms[i].shrinkSpeed / 2;
+            //Remove platform if too thin
+            if (platforms[i].width < character.width / 2) {
+                platforms.splice(i--, 1);
+                continue;
+            }
+        }
+    }
+
+    //Is character falling onto a platform?
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
-                platforms[i].width -= platforms[i].shrinkSpeed;
-
-                //Remove platform if too thin
-                if (platforms[i].width < character.width / 2) {
-                    platforms.splice(i--, 1);
-                    continue;
-                }
-
                 character.platform = i;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
