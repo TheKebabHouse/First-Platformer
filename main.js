@@ -9,9 +9,10 @@ var character = {
     vy: 1,
     width: 64,
     height: 64,
-    platform: null,
+    platformId: null,
     costumex: 0,
     costumey: 192,
+    facingLeft: false,
     isFalling() { return character.vy > 0 },
 };
 var platforms = [
@@ -77,6 +78,7 @@ const pressedKeys= {
     left: false,
     right: false,
 };
+let nextPlatformId = 0;
 
 function pageLoad() {
     /*for (let i = 0; i < 1000; ++i) {
@@ -114,6 +116,7 @@ function addRandomPlatform() {
         height: randInt(10, 20),
         shrinkSpeed: width / (20 * tickLength),
         colour: randomizeColor(),
+        id: nextPlatformId++,
     });
 }
 
@@ -138,10 +141,21 @@ function game() {
     drawBackground(-gameDimensions.width);
 
     var costume = document.querySelector("#character");
-    if (!character.isFalling()) {
-        character.costumex = (Math.floor(Math.abs(character.x) / 20) % 9) * 64;
-    }
-    ctx.drawImage(costume, character.costumex, character.costumey, character.width, character.height - 4, canvas.width/2, canvas.height/2, character.width, character.height);
+    const costumeNum =
+        character.vy != 0 && character.vx != 0
+            ? 1
+            : Math.abs((character.facingLeft ? 8 : 0) - (Math.floor(character.x / 20) % 9));
+    character.costumex = costumeNum * 64;
+    ctx.drawImage(
+        costume,
+        character.costumex,
+        character.facingLeft ? 66 : 194,
+        character.width,
+        character.height - 4,
+        canvas.width/2,
+        canvas.height/2,
+        character.width,
+        character.height);
      
     ctx.fillStyle = "black";
     ctx.fillRect(0, -character.y + gameDimensions.height / 2, canvas.width, 750);
@@ -190,7 +204,7 @@ function game() {
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
             if (isObjectOnPlatform(character, platforms[i])) {
-                character.platform = i;
+                character.platformId = platforms[i].id;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
                 break;
@@ -199,9 +213,10 @@ function game() {
     }
 
     //Check if the character is still on their platform
-    if (character.platform != null) {
-        if (!isObjectOnPlatform(character, platforms[character.platform])) {
-            character.platform = null;
+    if (character.platformId != null) {
+        const charPlatform = platforms.find(platform => platform.id == character.platformId);
+        if (!charPlatform || !isObjectOnPlatform(character, charPlatform)) {
+            character.platformId = null;
             //Make sure character drops when walking off a platform
             if (character.vy == 0) {
                 character.vy = gravitySpeed;
@@ -214,12 +229,12 @@ function game() {
 
     if (pressedKeys.right) {
         character.vx = 5;
-        character.costumey = 194;
+        character.facingLeft = false;
     }
     
     if (pressedKeys.left) {
         character.vx = -5;
-        character.costumey = 66;
+        character.facingLeft = true;
     }
     
     if (pressedKeys.up && character.vy == 0) {
@@ -227,7 +242,7 @@ function game() {
     }
      
     //Put character data on the screen
-    //document.querySelector("pre").innerHTML = JSON.stringify(character, null, 2);
+    document.querySelector("pre").innerHTML = (character.facingLeft ? 9 : 0) - Math.floor(character.x / 200) % 9;//JSON.stringify(character, null, 2);
 
     setTimeout(game, tickLength);
 }
