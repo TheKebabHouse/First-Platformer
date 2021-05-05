@@ -102,7 +102,7 @@ function randomizeColor() {
 }
 
 function randInt(a, b) {
-    return Math.random() * (b - a) + a;
+    return Math.floor(Math.random() * (b - a) + a)
 }
 
 function addRandomPlatform() {
