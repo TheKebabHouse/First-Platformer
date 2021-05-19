@@ -1,7 +1,12 @@
-const gameDimensions = {
+"use strict";
+const config = {
     width: 1500,
     height: 750,
-}
+    gravitySpeed: 0.3,
+    tickLength: 10,
+    backgroundSlowness: 2,
+};
+let images = {};
 var character = {
     x: 0,
     y: 0,
@@ -13,9 +18,9 @@ var character = {
     costumex: 0,
     costumey: 192,
     facingLeft: false,
-    isFalling() { return character.vy > 0 },
+    isFalling() { return character.vy > 0; },
 };
-var platforms = [
+const startingPlatforms = [
     {
         x: 100,
         y: -700,
@@ -23,7 +28,6 @@ var platforms = [
         height: 10,
         shrinkSpeed: 0,
         colour: "blue",
-        
     }, {
         x: 1250,
         y: -700,
@@ -38,29 +42,28 @@ var platforms = [
         height: 20,
         shrinkSpeed: 1,
         colour: "aqua",
-        
-    },{
+    }, {
         x: 0,
         y: -300,
         width: 150,
         height: 40,
         shrinkSpeed: 0,
         colour: "yellow",
-    },{
+    }, {
         x: 500,
         y: -350,
         width: 200,
         height: 20,
         shrinkSpeed: 0,
         colour: "blue",
-    },{
-        x:700,
+    }, {
+        x: 700,
         y: -250,
         width: 400,
         height: 10,
         shrinkSpeed: 1,
         colour: "green",
-    },{
+    }, {
         x: 0,
         y: -100,
         width: 3000,
@@ -69,17 +72,14 @@ var platforms = [
         colour: "aqua",
     }
 ];
-const gravitySpeed = 0.3;
-let tickLength = 10;
-const backgroundSlowness = 2;
-const pressedKeys= {
+var platforms = [];
+const pressedKeys = {
     up: false,
     down: false,
     left: false,
     right: false,
 };
 let nextPlatformId = 0;
-
 function pageLoad() {
     /*for (let i = 0; i < 1000; ++i) {
         //Create random platforms
@@ -89,105 +89,89 @@ function pageLoad() {
         //Create circle
         //addPlatform(Math.sin(i / 10) * 1000, Math.cos(i / 10) * 1000 - 1000);
     }*/
+    images.background = document.querySelector("#background");
+    images.foreground = document.querySelector("#foreground");
+    images.bushes = document.querySelector("#bushes");
+    startingPlatforms.forEach(addPlatform);
     setInterval(addRandomPlatform, 500);
     game();
 }
-
 function resetCharacter() {
     character.x = 0;
     character.y = -300;
     character.vy = 0;
 }
-
 function randomizeColor() {
-    return `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 1)`;
+    return `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`;
 }
-
 function randInt(a, b) {
-    return Math.floor(Math.random() * (b - a) + a)
+    return Math.floor(Math.random() * (b - a) + a);
 }
-
-function addRandomPlatform() {
-    const width = randInt(80, 340);
+function addPlatform(base) {
     platforms.push({
-        x: character.x + randInt(-100, 100),
-        y: character.y - 10,
-        width,
-        height: randInt(10, 20),
-        shrinkSpeed: width / (20 * tickLength),
-        colour: randomizeColor(),
+        ...base,
         id: nextPlatformId++,
     });
 }
-
+function addRandomPlatform() {
+    const width = randInt(80, 340);
+    addPlatform({
+        x: character.x + randInt(-100, 100),
+        y: (character.y - 10) + randInt(40, 120),
+        width,
+        height: randInt(10, 20),
+        shrinkSpeed: width / (20 * config.tickLength),
+        colour: randomizeColor(),
+    });
+}
 function game() {
-    
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     //Draw blue background
     ctx.fillStyle = "#009dc4";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     //Draw seamless parallax background
-    var background = document.querySelector("#background");
-    var screenNum = parseInt(character.x / (gameDimensions.width * backgroundSlowness));
-    var backgroundX = parseInt((-character.x / backgroundSlowness) + (screenNum * gameDimensions.width));
-    
-    function drawBackground(offsetX) {
-        ctx.drawImage(background, backgroundX + offsetX, -character.y - gameDimensions.height/2, canvas.width, canvas.height);
+    function drawBackground(image, x) {
+        ctx.drawImage(image, x, -character.y - config.height / 2, canvas.width, canvas.height);
     }
-    drawBackground(0);
-    drawBackground(gameDimensions.width);
-    drawBackground(-gameDimensions.width);
-
+    function drawLayer(image, slowness) {
+        var screenNum = Math.floor(character.x / (config.width * slowness));
+        var backgroundX = Math.floor((-character.x / slowness) + (screenNum * config.width));
+        drawBackground(image, backgroundX);
+        drawBackground(image, backgroundX + config.width);
+        drawBackground(image, backgroundX - config.width);
+    }
+    drawLayer(images.background, 3);
+    drawLayer(images.foreground, 2);
+    drawLayer(images.bushes, 1);
     var costume = document.querySelector("#character");
-    const costumeNum =
-        character.vy != 0 && character.vx != 0
-            ? 1
-            : Math.abs((character.facingLeft ? 8 : 0) - (Math.floor(character.x / 20) % 9));
+    const costumeNum = character.vy != 0 && character.vx != 0
+        ? 1
+        : Math.abs((character.facingLeft ? 8 : 0) - (Math.floor(character.x / 20) % 9));
     character.costumex = costumeNum * 64;
-    ctx.drawImage(
-        costume,
-        character.costumex,
-        character.facingLeft ? 66 : 194,
-        character.width,
-        character.height - 4,
-        canvas.width/2,
-        canvas.height/2,
-        character.width,
-        character.height);
-     
+    ctx.drawImage(costume, character.costumex, character.facingLeft ? 66 : 194, character.width, character.height - 4, canvas.width / 2, canvas.height / 2, character.width, character.height);
     ctx.fillStyle = "black";
-    ctx.fillRect(0, -character.y + gameDimensions.height / 2, canvas.width, 750);
-
+    ctx.fillRect(0, -character.y + config.height / 2, canvas.width, 750);
     for (var i = 0; i < platforms.length; ++i) {
         ctx.fillStyle = platforms[i].colour;
-        ctx.fillRect((platforms[i].x - character.x) + gameDimensions.width/2, (platforms[i].y - character.y) + gameDimensions.height/2, platforms[i].width, platforms[i].height);
+        ctx.fillRect((platforms[i].x - character.x) + config.width / 2, (platforms[i].y - character.y) + config.height / 2, platforms[i].width, platforms[i].height);
     }
-
-   
-   
     character.y += character.vy;
-
     if (character.vy < 10) {
-        character.vy += gravitySpeed;
+        character.vy += config.gravitySpeed;
     }
-
     if (character.y > 0) {
         resetCharacter();
     }
-
     if (character.vx != 0) {
         character.vx -= character.vx > 0 ? 0.5 : -0.5;
     }
     character.x += character.vx;
-
     if (character.y + character.height >= canvas.height) {
         character.vy = 0;
         character.y = canvas.height - character.height;
     }
-
-    //Shrink platforms if below the character
+    //Shrink and sink platforms if below the character
     for (var i = 0; i < platforms.length; ++i) {
         if (platforms[i].y > character.y + character.height - 1) {
             platforms[i].width -= platforms[i].shrinkSpeed;
@@ -199,11 +183,10 @@ function game() {
             }
         }
     }
-
     //Is character falling onto a platform?
     if (character.vy > 0) {
         for (var i = 0; i < platforms.length; ++i) {
-            if (isObjectOnPlatform(character, platforms[i])) {
+            if (isCharacterOnPlatform(character, platforms[i])) {
                 character.platformId = platforms[i].id;
                 character.vy = 0;
                 character.y = platforms[i].y - character.height;
@@ -211,48 +194,41 @@ function game() {
             }
         }
     }
-
     //Check if the character is still on their platform
     if (character.platformId != null) {
         const charPlatform = platforms.find(platform => platform.id == character.platformId);
-        if (!charPlatform || !isObjectOnPlatform(character, charPlatform)) {
+        if (!charPlatform || !isCharacterOnPlatform(character, charPlatform)) {
             character.platformId = null;
             //Make sure character drops when walking off a platform
             if (character.vy == 0) {
-                character.vy = gravitySpeed;
+                character.vy = config.gravitySpeed;
             }
         }
     }
-
     document.onkeydown = handleOnkeyDown;
     document.onkeyup = handleOnkeyUp;
-
     if (pressedKeys.right) {
         character.vx = 5;
         character.facingLeft = false;
     }
-    
     if (pressedKeys.left) {
         character.vx = -5;
         character.facingLeft = true;
     }
-    
     if (pressedKeys.up && character.vy == 0) {
         character.vy = -10;
     }
-     
     //Put character data on the screen
-    document.querySelector("pre").innerHTML = (character.facingLeft ? 9 : 0) - Math.floor(character.x / 200) % 9;//JSON.stringify(character, null, 2);
-
-    setTimeout(game, tickLength);
+    ctx.fillStyle = "black";
+    //JSON.stringify(character, null, 2);
+    setTimeout(game, config.tickLength);
 }
-
-
-function isObjectOnPlatform(obj, platform) {
-    if (obj.y + obj.height >= platform.y) {
-        if (obj.y + obj.height <= platform.y + platform.height) {
-            if (obj.x + obj.width / 2 > platform.x) {
-                if (obj.x + obj.width / 2 < platform.x + platform.width) {
+isCharacterOnPlatform("blah blah", 123);
+function isCharacterOnPlatform(char, platform) {
+    if (char.y + char.height >= platform.y) {
+        if (char.y + char.height <= platform.y + platform.height) {
+            if (char.x + char.width / 2 > platform.x) {
+                if (char.x + char.width / 2 < platform.x + platform.width) {
                     return true;
                 }
             }
@@ -260,7 +236,6 @@ function isObjectOnPlatform(obj, platform) {
     }
     return false;
 }
-
 function handleOnkeyDown(e) {
     switch (e.keyCode) {
         case 37: // Key left
@@ -277,7 +252,6 @@ function handleOnkeyDown(e) {
             break;
     }
 }
-
 function handleOnkeyUp(e) {
     switch (e.keyCode) {
         case 37: // Key left
