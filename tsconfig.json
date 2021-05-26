@@ -7,6 +7,7 @@
       "outFile": "./index.js",
       "rootDir": "./",
       "strict": true,
+      "sourceMap": true,
     }
   }
   

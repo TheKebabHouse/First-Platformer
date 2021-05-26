@@ -1,13 +1,17 @@
 "use strict";
+//To recompile, enter `tsc --watch` into the terminal
+//Open the terminal with Ctrl+J
 const config = {
     width: 1500,
     height: 750,
     gravitySpeed: 0.3,
-    tickLength: 10,
+    tickLength: 1000 / 60,
     backgroundSlowness: 2,
 };
-let images = {};
-var character = {
+let images;
+var canvas;
+var ctx;
+var player = {
     x: 0,
     y: 0,
     vx: 0,
@@ -15,10 +19,12 @@ var character = {
     width: 64,
     height: 64,
     platformId: null,
+    maxHealth: 100,
+    health: 100,
     costumex: 0,
     costumey: 192,
-    facingLeft: false,
-    isFalling() { return character.vy > 0; },
+    isFacingLeft: false,
+    isFalling() { return player.vy > 0; },
 };
 const startingPlatforms = [
     {
@@ -80,6 +86,8 @@ const pressedKeys = {
     right: false,
 };
 let nextPlatformId = 0;
+let harmFlashTimeout = 0;
+let harmTotal = 0;
 function pageLoad() {
     /*for (let i = 0; i < 1000; ++i) {
         //Create random platforms
@@ -89,19 +97,24 @@ function pageLoad() {
         //Create circle
         //addPlatform(Math.sin(i / 10) * 1000, Math.cos(i / 10) * 1000 - 1000);
     }*/
-    images.background = document.querySelector("#background");
-    images.foreground = document.querySelector("#foreground");
-    images.bushes = document.querySelector("#bushes");
+    images = {
+        background: document.querySelector("#background"),
+        foreground: document.querySelector("#foreground"),
+        bushes: document.querySelector("#bushes")
+    };
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
     startingPlatforms.forEach(addPlatform);
     setInterval(addRandomPlatform, 500);
     game();
 }
-function resetCharacter() {
-    character.x = 0;
-    character.y = -300;
-    character.vy = 0;
+function resetPlayer() {
+    player.x = 0;
+    player.y = -300;
+    player.vy = 0;
+    player.health = player.maxHealth;
 }
-function randomizeColor() {
+function randomiseColour() {
     return `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`;
 }
 function randInt(a, b) {
@@ -111,32 +124,36 @@ function addPlatform(base) {
     platforms.push({
         ...base,
         id: nextPlatformId++,
+        colour: base.colour ?? randomiseColour(),
     });
 }
 function addRandomPlatform() {
     const width = randInt(80, 340);
+    const isHarmful = !randInt(0, 2);
+    // const harmfulGradient = ctx.createLinearGradient(0, 0, 0, 100);
+    //harmfulGradient.addColorStop(0, "red");
+    //harmfulGradient.addColorStop(1, "black");
     addPlatform({
-        x: character.x + randInt(-100, 100),
-        y: (character.y - 10) + randInt(40, 120),
+        x: player.x + randInt(-100, 100),
+        y: (player.y - 10) + randInt(40, 120),
         width,
+        isHarmful,
         height: randInt(10, 20),
         shrinkSpeed: width / (20 * config.tickLength),
-        colour: randomizeColor(),
+        colour: isHarmful ? "#f00" : randomiseColour(),
     });
 }
-function game() {
-    var canvas = document.getElementById("canvas");
-    var ctx = canvas.getContext("2d");
+function draw() {
     //Draw blue background
     ctx.fillStyle = "#009dc4";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     //Draw seamless parallax background
     function drawBackground(image, x) {
-        ctx.drawImage(image, x, -character.y - config.height / 2, canvas.width, canvas.height);
+        ctx.drawImage(image, x, -player.y - config.height / 2, canvas.width, canvas.height);
     }
     function drawLayer(image, slowness) {
-        var screenNum = Math.floor(character.x / (config.width * slowness));
-        var backgroundX = Math.floor((-character.x / slowness) + (screenNum * config.width));
+        var screenNum = Math.floor(player.x / (config.width * slowness));
+        var backgroundX = Math.floor((-player.x / slowness) + (screenNum * config.width));
         drawBackground(image, backgroundX);
         drawBackground(image, backgroundX + config.width);
         drawBackground(image, backgroundX - config.width);
@@ -145,85 +162,126 @@ function game() {
     drawLayer(images.foreground, 2);
     drawLayer(images.bushes, 1);
     var costume = document.querySelector("#character");
-    const costumeNum = character.vy != 0 && character.vx != 0
+    const costumeNum = player.vy != 0 && player.vx != 0
         ? 1
-        : Math.abs((character.facingLeft ? 8 : 0) - (Math.floor(character.x / 20) % 9));
-    character.costumex = costumeNum * 64;
-    ctx.drawImage(costume, character.costumex, character.facingLeft ? 66 : 194, character.width, character.height - 4, canvas.width / 2, canvas.height / 2, character.width, character.height);
+        : Math.abs((player.isFacingLeft ? 8 : 0) - (Math.floor(player.x / 20) % 9));
+    player.costumex = costumeNum * 64;
+    ctx.drawImage(costume, player.costumex, player.isFacingLeft ? 66 : 194, player.width, player.height - 4, config.width / 2, config.height / 2, player.width, player.height);
     ctx.fillStyle = "black";
-    ctx.fillRect(0, -character.y + config.height / 2, canvas.width, 750);
+    ctx.fillRect(0, -player.y + config.height / 2, canvas.width, 750);
     for (var i = 0; i < platforms.length; ++i) {
         ctx.fillStyle = platforms[i].colour;
-        ctx.fillRect((platforms[i].x - character.x) + config.width / 2, (platforms[i].y - character.y) + config.height / 2, platforms[i].width, platforms[i].height);
+        ctx.fillRect((platforms[i].x - player.x) + config.width / 2, (platforms[i].y - player.y) + config.height / 2, platforms[i].width, platforms[i].height);
     }
-    character.y += character.vy;
-    if (character.vy < 10) {
-        character.vy += config.gravitySpeed;
+    ctx.fillStyle = "white";
+    ctx.fillRect(90, 70, 70, 40);
+    ctx.fillStyle = "black";
+    ctx.font = "30px Arial";
+    ctx.fillText(player.health.toFixed(0), 100, 100);
+    const showFlash = harmFlashTimeout > 0 || player.health < 20;
+    if (showFlash) {
+        harmFlashTimeout--;
+        ctx.fillStyle = "rgba(255, 0, 0, .2)";
+        ctx.fillRect(0, 0, config.width, config.height);
     }
-    if (character.y > 0) {
-        resetCharacter();
+    if (harmFlashTimeout < 0) {
+        harmTotal = 0;
     }
-    if (character.vx != 0) {
-        character.vx -= character.vx > 0 ? 0.5 : -0.5;
+    if (harmTotal > 0) {
+        ctx.fillStyle = "white";
+        ctx.fillText(`-${Math.ceil(harmTotal)}`, config.width / 2, config.height / 2);
     }
-    character.x += character.vx;
-    if (character.y + character.height >= canvas.height) {
-        character.vy = 0;
-        character.y = canvas.height - character.height;
+}
+function harmPlayer(damage) {
+    player.health -= damage;
+    harmTotal += damage;
+    harmFlashTimeout = (1000 * .25) / config.tickLength;
+}
+function game() {
+    draw();
+    if (player.health < player.maxHealth) {
+        player.health += 0.04;
+    }
+    if (player.health <= 0) {
+        resetPlayer();
+    }
+    player.y += player.vy;
+    if (player.vy < 20) {
+        player.vy += config.gravitySpeed;
+    }
+    if (player.y > 0) {
+        resetPlayer();
+    }
+    if (player.vx != 0) {
+        player.vx -= player.vx > 0 ? 0.5 : -0.5;
+    }
+    player.x += player.vx;
+    //???
+    if (player.y + player.height >= canvas.height) {
+        player.vy = 0;
+        player.y = canvas.height - player.height;
     }
     //Shrink and sink platforms if below the character
     for (var i = 0; i < platforms.length; ++i) {
-        if (platforms[i].y > character.y + character.height - 1) {
+        if (platforms[i].y > player.y + player.height - 1) {
+            //Shrink platform
             platforms[i].width -= platforms[i].shrinkSpeed;
             platforms[i].x += platforms[i].shrinkSpeed / 2;
             //Remove platform if too thin
-            if (platforms[i].width < character.width / 2) {
+            if (platforms[i].width < player.width / 2) {
                 platforms.splice(i--, 1);
                 continue;
             }
         }
     }
     //Is character falling onto a platform?
-    if (character.vy > 0) {
+    if (player.isFalling()) {
         for (var i = 0; i < platforms.length; ++i) {
-            if (isCharacterOnPlatform(character, platforms[i])) {
-                character.platformId = platforms[i].id;
-                character.vy = 0;
-                character.y = platforms[i].y - character.height;
+            if (isCharacterOnPlatform(player, platforms[i])) {
+                player.platformId = platforms[i].id;
+                //Fall damage
+                if (player.vy > 10) {
+                    harmPlayer(player.vy - 10);
+                }
+                //Damage player if platform is harmful
+                if (platforms[i].isHarmful) {
+                    harmPlayer((config.tickLength / (1000 * 5)) * player.maxHealth);
+                }
+                player.vy = 0;
+                player.y = platforms[i].y - player.height;
                 break;
             }
         }
     }
     //Check if the character is still on their platform
-    if (character.platformId != null) {
-        const charPlatform = platforms.find(platform => platform.id == character.platformId);
-        if (!charPlatform || !isCharacterOnPlatform(character, charPlatform)) {
-            character.platformId = null;
+    if (player.platformId != null) {
+        const charPlatform = platforms.find(platform => platform.id == player.platformId);
+        if (!charPlatform || !isCharacterOnPlatform(player, charPlatform)) {
+            player.platformId = null;
             //Make sure character drops when walking off a platform
-            if (character.vy == 0) {
-                character.vy = config.gravitySpeed;
+            if (player.vy == 0) {
+                player.vy = config.gravitySpeed;
             }
         }
     }
     document.onkeydown = handleOnkeyDown;
     document.onkeyup = handleOnkeyUp;
     if (pressedKeys.right) {
-        character.vx = 5;
-        character.facingLeft = false;
+        player.vx = 5;
+        player.isFacingLeft = false;
     }
     if (pressedKeys.left) {
-        character.vx = -5;
-        character.facingLeft = true;
+        player.vx = -5;
+        player.isFacingLeft = true;
     }
-    if (pressedKeys.up && character.vy == 0) {
-        character.vy = -10;
+    if (pressedKeys.up && player.vy == 0) {
+        player.vy = -10;
     }
     //Put character data on the screen
     ctx.fillStyle = "black";
     //JSON.stringify(character, null, 2);
     setTimeout(game, config.tickLength);
 }
-isCharacterOnPlatform("blah blah", 123);
 function isCharacterOnPlatform(char, platform) {
     if (char.y + char.height >= platform.y) {
         if (char.y + char.height <= platform.y + platform.height) {
@@ -268,3 +326,4 @@ function handleOnkeyUp(e) {
             break;
     }
 }
+//# sourceMappingURL=index.js.map
