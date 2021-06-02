@@ -240,11 +240,13 @@ function draw() {
         ctx.fillStyle = platforms[i].colour;
         ctx.fillRect((platforms[i].x - player.x) + config.width/2, (platforms[i].y - player.y) + config.height/2, platforms[i].width, platforms[i].height);
     }
+    var playerIsBeingHarmed : boolean
+    var playerIsBeingHarmed = false
 
     ctx.fillStyle = "white";
     ctx.fillRect(90, 70, 70, 40);
-    ctx.fillStyle = "black";
-    ctx.font = "30px Arial";
+    ctx.fillStyle = playerIsBeingHarmed  ? "red" : "black";
+    ctx.font =  "30px Arial";
     ctx.fillText(player.health.toFixed(0), 100, 100);
 
     const showFlash = harmFlashTimeout > 0 || player.health < 20;
@@ -260,12 +262,16 @@ function draw() {
 
     if (harmTotal > 0) {
         ctx.fillStyle = "white";
+        ctx.font = "30px Chiller"
         ctx.fillText(`-${Math.ceil(harmTotal)}`, config.width/2, config.height/2);
     }
 }
 
 
 function harmPlayer(damage: number) {
+    if (damage > 0) {
+        var playerIsBeingharmed = true
+    }
     player.health -= damage;
     harmTotal += damage;
     harmFlashTimeout = (1000 * .25) / config.tickLength;
