@@ -5,15 +5,15 @@ const config = {
     width: 1500,
     height: 750,
     gravitySpeed: 0.3,
-    tickLength: 1000 / 60,
+    tickLength: 1000 / 120,
     backgroundSlowness: 2,
 };
 let images;
 var canvas;
 var ctx;
-var player = {
+const player = {
     x: 0,
-    y: 0,
+    y: -300,
     vx: 0,
     vy: 1,
     width: 64,
@@ -24,6 +24,11 @@ var player = {
     costumex: 0,
     costumey: 192,
     isFacingLeft: false,
+    harm(damage) {
+        player.health -= damage;
+        harm.total += damage;
+        harm.flashUntil = Date.now() + 250;
+    },
     isFalling() { return player.vy > 0; },
 };
 const startingPlatforms = [
@@ -32,14 +37,12 @@ const startingPlatforms = [
         y: -700,
         width: 100,
         height: 10,
-        shrinkSpeed: 0,
         colour: "blue",
     }, {
         x: 1250,
         y: -700,
         width: 300,
         height: 10,
-        shrinkSpeed: 0,
         colour: "green",
     }, {
         x: 500,
@@ -53,14 +56,12 @@ const startingPlatforms = [
         y: -300,
         width: 150,
         height: 40,
-        shrinkSpeed: 0,
         colour: "yellow",
     }, {
         x: 500,
         y: -350,
         width: 200,
         height: 20,
-        shrinkSpeed: 0,
         colour: "blue",
     }, {
         x: 700,
@@ -70,12 +71,26 @@ const startingPlatforms = [
         shrinkSpeed: 1,
         colour: "green",
     }, {
-        x: 0,
-        y: -100,
+        x: -3100,
+        y: 0,
         width: 3000,
         height: 100,
-        shrinkSpeed: 0,
-        colour: "aqua",
+        colour: "#820",
+        wobble: { px: 100, x: -3100 },
+    }, {
+        x: 0,
+        y: 0,
+        width: 300,
+        height: 100,
+        colour: "#820",
+        wobble: { px: 150, x: 0 },
+    }, {
+        x: 400,
+        y: 0,
+        width: 3000,
+        height: 100,
+        colour: "#820",
+        wobble: { px: 200, x: 400 },
     }
 ];
 var platforms = [];
@@ -86,8 +101,16 @@ const pressedKeys = {
     right: false,
 };
 let nextPlatformId = 0;
-let harmFlashTimeout = 0;
-let harmTotal = 0;
+let harm = {
+    flashUntil: 0,
+    total: 0,
+    isNow: () => {
+        if (harm.flashUntil < Date.now()) {
+            harm.total = 0;
+        }
+        return (harm.flashUntil > Date.now() && harm.total > 1) || player.health < 20;
+    },
+};
 function pageLoad() {
     /*for (let i = 0; i < 1000; ++i) {
         //Create random platforms
@@ -105,7 +128,7 @@ function pageLoad() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
     startingPlatforms.forEach(addPlatform);
-    setInterval(addRandomPlatform, 500);
+    setInterval(addRandomPlatform, 1000);
     game();
 }
 function resetPlayer() {
@@ -129,10 +152,7 @@ function addPlatform(base) {
 }
 function addRandomPlatform() {
     const width = randInt(80, 340);
-    const isHarmful = !randInt(0, 2);
-    // const harmfulGradient = ctx.createLinearGradient(0, 0, 0, 100);
-    //harmfulGradient.addColorStop(0, "red");
-    //harmfulGradient.addColorStop(1, "black");
+    const isHarmful = !randInt(0, 20);
     addPlatform({
         x: player.x + randInt(-100, 100),
         y: (player.y - 10) + randInt(40, 120),
@@ -167,40 +187,42 @@ function draw() {
         : Math.abs((player.isFacingLeft ? 8 : 0) - (Math.floor(player.x / 20) % 9));
     player.costumex = costumeNum * 64;
     ctx.drawImage(costume, player.costumex, player.isFacingLeft ? 66 : 194, player.width, player.height - 4, config.width / 2, config.height / 2, player.width, player.height);
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, -player.y + config.height / 2, canvas.width, 750);
+    //Draw void
+    const voidHeight = 2000;
+    const voidY = -player.y + config.height / 2;
+    const voidGradient = ctx.createLinearGradient(0, voidY, 0, voidY + voidHeight);
+    voidGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+    voidGradient.addColorStop(.5, "black");
+    voidGradient.addColorStop(1, "black");
+    ctx.fillStyle = voidGradient;
+    ctx.fillRect(0, 0, config.width, config.height);
+    //Draw platforms
     for (var i = 0; i < platforms.length; ++i) {
         ctx.fillStyle = platforms[i].colour;
         ctx.fillRect((platforms[i].x - player.x) + config.width / 2, (platforms[i].y - player.y) + config.height / 2, platforms[i].width, platforms[i].height);
     }
-    ctx.fillStyle = "white";
-    ctx.fillRect(90, 70, 70, 40);
-    ctx.fillStyle = "black";
-    ctx.font = "30px Arial";
-    ctx.fillText(player.health.toFixed(0), 100, 100);
-    const showFlash = harmFlashTimeout > 0 || player.health < 20;
-    if (showFlash) {
-        harmFlashTimeout--;
+    //Draw red screen and harm total
+    if (harm.isNow()) {
         ctx.fillStyle = "rgba(255, 0, 0, .2)";
         ctx.fillRect(0, 0, config.width, config.height);
-    }
-    if (harmFlashTimeout < 0) {
-        harmTotal = 0;
-    }
-    if (harmTotal > 0) {
         ctx.fillStyle = "white";
-        ctx.fillText(`-${Math.ceil(harmTotal)}`, config.width / 2, config.height / 2);
+        ctx.font = "30px Chiller";
+        ctx.fillText(`-${Math.ceil(harm.total)}`, config.width / 2, config.height / 2);
     }
-}
-function harmPlayer(damage) {
-    player.health -= damage;
-    harmTotal += damage;
-    harmFlashTimeout = (1000 * .25) / config.tickLength;
+    //Draw player health
+    ctx.fillStyle = "white";
+    ctx.fillRect(90, 70, 70, 40);
+    ctx.fillStyle = harm.isNow() ? "red" : "black";
+    ctx.font = harm.isNow() ? "30px Chiller" : "30px Arial";
+    ctx.fillText(player.health.toFixed(0), 100, 100);
 }
 function game() {
     draw();
     if (player.health < player.maxHealth) {
-        player.health += 0.04;
+        player.health += 0.01;
+    }
+    if (player.y - player.height >= 0) {
+        player.harm(player.y / 1000);
     }
     if (player.health <= 0) {
         resetPlayer();
@@ -209,28 +231,30 @@ function game() {
     if (player.vy < 20) {
         player.vy += config.gravitySpeed;
     }
-    if (player.y > 0) {
-        resetPlayer();
-    }
     if (player.vx != 0) {
         player.vx -= player.vx > 0 ? 0.5 : -0.5;
     }
     player.x += player.vx;
-    //???
-    if (player.y + player.height >= canvas.height) {
-        player.vy = 0;
-        player.y = canvas.height - player.height;
-    }
     //Shrink and sink platforms if below the character
+    //  and wobble platforms
     for (var i = 0; i < platforms.length; ++i) {
         if (platforms[i].y > player.y + player.height - 1) {
             //Shrink platform
-            platforms[i].width -= platforms[i].shrinkSpeed;
-            platforms[i].x += platforms[i].shrinkSpeed / 2;
+            platforms[i].width -= platforms[i].shrinkSpeed ?? 0;
+            platforms[i].x += platforms[i].shrinkSpeed ?? 0 / 2;
             //Remove platform if too thin
             if (platforms[i].width < player.width / 2) {
                 platforms.splice(i--, 1);
                 continue;
+            }
+        }
+        const { wobble } = platforms[i];
+        if (wobble) {
+            const wobbleTo = wobble.x + (Math.sin(Date.now() / 1000) * wobble.px);
+            const xDiff = wobbleTo - platforms[i].x;
+            platforms[i].x += xDiff;
+            if (player.platformId == platforms[i].id) {
+                player.x += xDiff;
             }
         }
     }
@@ -241,11 +265,11 @@ function game() {
                 player.platformId = platforms[i].id;
                 //Fall damage
                 if (player.vy > 10) {
-                    harmPlayer(player.vy - 10);
+                    player.harm(player.vy - 10);
                 }
                 //Damage player if platform is harmful
                 if (platforms[i].isHarmful) {
-                    harmPlayer((config.tickLength / (1000 * 5)) * player.maxHealth);
+                    player.harm((config.tickLength / (1000 * 5)) * player.maxHealth);
                 }
                 player.vy = 0;
                 player.y = platforms[i].y - player.height;
